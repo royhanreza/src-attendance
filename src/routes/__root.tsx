@@ -5,9 +5,24 @@ import {
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { useAuthStore } from "../stores/authStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+// Conditionally load devtools only in development
+function DevTools() {
+  const [Devtools, setDevtools] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("@tanstack/router-devtools").then((module) => {
+        setDevtools(() => module.TanStackRouterDevtools);
+      });
+    }
+  }, []);
+
+  if (!Devtools) return null;
+  return <Devtools />;
+}
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -132,7 +147,7 @@ function RootComponent() {
           <Outlet />
         </main>
       </div>
-      <TanStackRouterDevtools />
+      <DevTools />
     </>
   );
 }
