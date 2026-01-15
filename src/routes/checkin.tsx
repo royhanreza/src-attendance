@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getApiBaseUrl } from "@/lib/api";
+import { compressImage } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 
 // Fix for default marker icon in React Leaflet
@@ -153,7 +154,7 @@ function CheckinPage() {
     getLocation();
   }, []);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
@@ -162,20 +163,21 @@ function CheckinPage() {
         return;
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Ukuran file maksimal 5MB");
-        return;
+      try {
+        // Compress image
+        const compressedFile = await compressImage(file);
+        setPhoto(compressedFile);
+
+        // Create preview from compressed file
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error("Error compressing image:", error);
+        alert("Gagal memproses gambar. Silakan coba lagi.");
       }
-
-      setPhoto(file);
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
