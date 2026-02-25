@@ -1,6 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "../stores/authStore";
-import { Activity, User, LogOut, Calendar, Clock, MapPin } from "lucide-react";
+import {
+  Activity,
+  User,
+  LogOut,
+  Calendar,
+  Clock,
+  MapPin,
+  History,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { getApiBaseUrl } from "../lib/api";
 
@@ -22,7 +30,7 @@ function HomePage() {
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
   const [activeActivity, setActiveActivity] = useState<ActiveActivity | null>(
-    null
+    null,
   );
 
   const handleLogout = () => {
@@ -70,7 +78,7 @@ function HomePage() {
         const currentDateStr = today.toISOString().split("T")[0];
         const apiBaseUrl = getApiBaseUrl();
         const response = await fetch(
-          `${apiBaseUrl}/activities/active-activity?employee_id=${user.employee_id}&date=${currentDateStr}`
+          `${apiBaseUrl}/activities/active-activity?employee_id=${user.employee_id}&date=${currentDateStr}`,
         );
 
         if (response.ok) {
@@ -190,6 +198,48 @@ function HomePage() {
                 </p>
               </div>
               <div className="text-gray-400 group-hover:text-fuchsia-600 transition-colors">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </button>
+
+            {/* Riwayat Menu */}
+            <button
+              onClick={() => {
+                if (user?.employee_id) {
+                  navigate({
+                    to: "/activity-history",
+                    search: {
+                      employee_id: String(user.employee_id),
+                    },
+                  });
+                }
+              }}
+              className="group w-full bg-white border border-gray-200 rounded-2xl p-5 flex items-center space-x-4 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300">
+                <History className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="font-semibold text-gray-900 text-base mb-1">
+                  Riwayat Aktifitas
+                </h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Lihat riwayat aktivitas bulanan Anda
+                </p>
+              </div>
+              <div className="text-gray-400 group-hover:text-blue-600 transition-colors">
                 <svg
                   className="w-6 h-6"
                   fill="none"

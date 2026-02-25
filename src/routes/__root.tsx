@@ -41,6 +41,8 @@ function RootComponent() {
   const isActivityCheckPage = location.pathname === "/activity-check";
   const isCheckinSuccessPage = location.pathname === "/checkin-success";
   const isCheckoutSuccessPage = location.pathname === "/checkout-success";
+  const isActivityHistoryPage = location.pathname === "/activity-history";
+  const isActivityDetailPage = location.pathname === "/activity-detail";
   const hideHeader =
     isLoginPage ||
     isHomePage ||
@@ -48,7 +50,9 @@ function RootComponent() {
     isCheckoutPage ||
     isActivityCheckPage ||
     isCheckinSuccessPage ||
-    isCheckoutSuccessPage;
+    isCheckoutSuccessPage ||
+    isActivityHistoryPage ||
+    isActivityDetailPage;
 
   // Redirect to login if not authenticated (except on login page)
   useEffect(() => {

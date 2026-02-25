@@ -14,6 +14,8 @@ import { Route as CheckoutSuccessRouteImport } from './routes/checkout-success'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CheckinSuccessRouteImport } from './routes/checkin-success'
 import { Route as CheckinRouteImport } from './routes/checkin'
+import { Route as ActivityHistoryRouteImport } from './routes/activity-history'
+import { Route as ActivityDetailRouteImport } from './routes/activity-detail'
 import { Route as ActivityCheckRouteImport } from './routes/activity-check'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -43,6 +45,16 @@ const CheckinRoute = CheckinRouteImport.update({
   path: '/checkin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActivityHistoryRoute = ActivityHistoryRouteImport.update({
+  id: '/activity-history',
+  path: '/activity-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivityDetailRoute = ActivityDetailRouteImport.update({
+  id: '/activity-detail',
+  path: '/activity-detail',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivityCheckRoute = ActivityCheckRouteImport.update({
   id: '/activity-check',
   path: '/activity-check',
@@ -63,6 +75,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activity-check': typeof ActivityCheckRoute
+  '/activity-detail': typeof ActivityDetailRoute
+  '/activity-history': typeof ActivityHistoryRoute
   '/checkin': typeof CheckinRoute
   '/checkin-success': typeof CheckinSuccessRoute
   '/checkout': typeof CheckoutRoute
@@ -73,6 +87,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activity-check': typeof ActivityCheckRoute
+  '/activity-detail': typeof ActivityDetailRoute
+  '/activity-history': typeof ActivityHistoryRoute
   '/checkin': typeof CheckinRoute
   '/checkin-success': typeof CheckinSuccessRoute
   '/checkout': typeof CheckoutRoute
@@ -84,6 +100,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activity-check': typeof ActivityCheckRoute
+  '/activity-detail': typeof ActivityDetailRoute
+  '/activity-history': typeof ActivityHistoryRoute
   '/checkin': typeof CheckinRoute
   '/checkin-success': typeof CheckinSuccessRoute
   '/checkout': typeof CheckoutRoute
@@ -96,6 +114,8 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activity-check'
+    | '/activity-detail'
+    | '/activity-history'
     | '/checkin'
     | '/checkin-success'
     | '/checkout'
@@ -106,6 +126,8 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activity-check'
+    | '/activity-detail'
+    | '/activity-history'
     | '/checkin'
     | '/checkin-success'
     | '/checkout'
@@ -116,6 +138,8 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activity-check'
+    | '/activity-detail'
+    | '/activity-history'
     | '/checkin'
     | '/checkin-success'
     | '/checkout'
@@ -127,6 +151,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ActivityCheckRoute: typeof ActivityCheckRoute
+  ActivityDetailRoute: typeof ActivityDetailRoute
+  ActivityHistoryRoute: typeof ActivityHistoryRoute
   CheckinRoute: typeof CheckinRoute
   CheckinSuccessRoute: typeof CheckinSuccessRoute
   CheckoutRoute: typeof CheckoutRoute
@@ -171,6 +197,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/activity-history': {
+      id: '/activity-history'
+      path: '/activity-history'
+      fullPath: '/activity-history'
+      preLoaderRoute: typeof ActivityHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activity-detail': {
+      id: '/activity-detail'
+      path: '/activity-detail'
+      fullPath: '/activity-detail'
+      preLoaderRoute: typeof ActivityDetailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activity-check': {
       id: '/activity-check'
       path: '/activity-check'
@@ -199,6 +239,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ActivityCheckRoute: ActivityCheckRoute,
+  ActivityDetailRoute: ActivityDetailRoute,
+  ActivityHistoryRoute: ActivityHistoryRoute,
   CheckinRoute: CheckinRoute,
   CheckinSuccessRoute: CheckinSuccessRoute,
   CheckoutRoute: CheckoutRoute,
