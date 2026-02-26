@@ -192,16 +192,20 @@ function ActivityHistoryPage() {
             ) : (
               days.map((day, index) => {
                 const dateStr = format(day, "yyyy-MM-dd");
-                const activity = activities.find((a) => a.date === dateStr);
+                const dayActivities = activities.filter(
+                  (a) => a.date === dateStr,
+                );
+                const hasActivity = dayActivities.length > 0;
+                const latestActivity = dayActivities[0]; // Since it's ordered by ID or similar
                 const isToday = format(new Date(), "yyyy-MM-dd") === dateStr;
                 const isFuture = day > new Date();
 
                 return (
                   <button
                     key={index}
-                    disabled={isFuture && !activity}
+                    disabled={isFuture && !hasActivity}
                     onClick={() => {
-                      if (activity || !isFuture) {
+                      if (hasActivity || !isFuture) {
                         navigate({
                           to: "/activity-detail",
                           search: {
@@ -213,9 +217,9 @@ function ActivityHistoryPage() {
                     }}
                     className={`w-full flex items-center p-4 rounded-2xl border transition-all duration-200 text-left
                       ${
-                        isFuture && !activity
+                        isFuture && !hasActivity
                           ? "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed"
-                          : activity
+                          : hasActivity
                             ? "bg-white border-blue-100 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5"
                             : "bg-white border-gray-100 hover:bg-gray-50"
                       }
@@ -227,7 +231,7 @@ function ActivityHistoryPage() {
                         ${
                           isToday
                             ? "bg-blue-600 text-white"
-                            : activity
+                            : hasActivity
                               ? "bg-blue-50 text-blue-700"
                               : "bg-gray-100 text-gray-500"
                         }
@@ -243,20 +247,27 @@ function ActivityHistoryPage() {
 
                     {/* Status Content */}
                     <div className="flex-1 min-w-0">
-                      {activity ? (
+                      {hasActivity ? (
                         <div>
-                          <p className="text-sm font-semibold text-gray-900 mb-1 truncate">
-                            {activity.check_out_time
-                              ? "Selesai"
-                              : "Sedang Berjalan"}
-                          </p>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {latestActivity.check_out_time
+                                ? "Selesai"
+                                : "Sedang Berjalan"}
+                            </p>
+                            {dayActivities.length > 1 && (
+                              <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                                {dayActivities.length} Sesi
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center text-xs text-gray-500 font-medium">
                             <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                            Check In: {activity.check_in_time || "-"}
-                            {activity.check_out_time && (
+                            Check In: {latestActivity.check_in_time || "-"}
+                            {latestActivity.check_out_time && (
                               <>
                                 <span className="mx-2 text-gray-300">•</span>
-                                Check Out: {activity.check_out_time}
+                                Check Out: {latestActivity.check_out_time}
                               </>
                             )}
                           </div>
@@ -274,7 +285,7 @@ function ActivityHistoryPage() {
 
                     <div className="ml-3 flex-shrink-0">
                       <ChevronRight
-                        className={`w-5 h-5 ${activity ? "text-blue-400" : "text-gray-300"}`}
+                        className={`w-5 h-5 ${hasActivity ? "text-blue-400" : "text-gray-300"}`}
                       />
                     </div>
                   </button>
