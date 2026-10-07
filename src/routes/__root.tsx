@@ -43,6 +43,12 @@ function RootComponent() {
   const isCheckoutSuccessPage = location.pathname === "/checkout-success";
   const isActivityHistoryPage = location.pathname === "/activity-history";
   const isActivityDetailPage = location.pathname === "/activity-detail";
+  const isAttendancePage = location.pathname === "/attendance";
+  const isAttendanceDetailPage = location.pathname === "/attendance-detail";
+  const isClockInPage = location.pathname === "/clock-in";
+  const isClockOutPage = location.pathname === "/clock-out";
+  const isClockInSuccessPage = location.pathname === "/clock-in-success";
+  const isClockOutSuccessPage = location.pathname === "/clock-out-success";
   const hideHeader =
     isLoginPage ||
     isHomePage ||
@@ -52,7 +58,13 @@ function RootComponent() {
     isCheckinSuccessPage ||
     isCheckoutSuccessPage ||
     isActivityHistoryPage ||
-    isActivityDetailPage;
+    isActivityDetailPage ||
+    isAttendancePage ||
+    isAttendanceDetailPage ||
+    isClockInPage ||
+    isClockOutPage ||
+    isClockInSuccessPage ||
+    isClockOutSuccessPage;
 
   // Redirect to login if not authenticated (except on login page)
   useEffect(() => {

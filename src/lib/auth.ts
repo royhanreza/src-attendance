@@ -8,6 +8,28 @@ export interface LoginCredentials {
   fcm_token?: string;
 }
 
+export interface EmployeeUser {
+  id?: number | string;
+  employee_id?: string;
+  name?: string;
+  photo?: string;
+  active_career?: {
+    job_title?: {
+      name?: string;
+    };
+    [key: string]: unknown;
+  };
+  office?: {
+    id?: number;
+    name?: string;
+    latitude?: number | string;
+    longitude?: number | string;
+    radius?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export interface LoginResponse {
   message: string;
   error: boolean;
@@ -15,16 +37,18 @@ export interface LoginResponse {
   data?: {
     id: number;
     username: string;
-    employee?: any;
-    [key: string]: any;
+    employee?: EmployeeUser;
+    employee_id?: number | string;
+    [key: string]: unknown;
   };
 }
 
 export interface AuthUser {
   id: number;
   username: string;
-  employee?: any;
-  [key: string]: any;
+  employee?: EmployeeUser;
+  employee_id?: number | string;
+  [key: string]: unknown;
 }
 
 const AUTH_STORAGE_KEY = "magenta_activity_auth";

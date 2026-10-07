@@ -55,6 +55,21 @@ export const API_ENDPOINTS = {
       `${EXTERNAL_APIS.NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}`,
   },
 
+  // Attendance endpoints
+  ATTENDANCE: {
+    CLOCK_IN: `${API_BASE_URL}/attendances/action/clockin-v2`,
+    CLOCK_OUT: `${API_BASE_URL}/attendances/action/clockout-v2`,
+    WORKING_PATTERNS: `${API_BASE_URL}/working-patterns`,
+    PERMISSION_CATEGORIES: `${API_BASE_URL}/permission-categories`,
+    PERMISSION_NOTES: `${API_BASE_URL}/permission-notes`,
+    EMPLOYEE_DETAIL: (employeeId: string | number) =>
+      `${API_BASE_URL}/employees/detail-v2/${employeeId}`,
+    MONTHLY_ATTENDANCES: (employeeId: string | number) =>
+      `${API_BASE_URL}/employees/${employeeId}/monthly-attendances`,
+    DETAIL: (attendanceId: string | number) =>
+      `${API_BASE_URL}/attendances/${attendanceId}`,
+  },
+
   // Authentication endpoints
   AUTH: {
     LOGIN_EMPLOYEE: `${API_BASE_URL}/auth/mobile/employee`,

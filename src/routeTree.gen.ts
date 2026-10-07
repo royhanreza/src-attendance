@@ -10,10 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ClockOutSuccessRouteImport } from './routes/clock-out-success'
+import { Route as ClockOutRouteImport } from './routes/clock-out'
+import { Route as ClockInSuccessRouteImport } from './routes/clock-in-success'
+import { Route as ClockInRouteImport } from './routes/clock-in'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout-success'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CheckinSuccessRouteImport } from './routes/checkin-success'
 import { Route as CheckinRouteImport } from './routes/checkin'
+import { Route as AttendanceDetailRouteImport } from './routes/attendance-detail'
+import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as ActivityHistoryRouteImport } from './routes/activity-history'
 import { Route as ActivityDetailRouteImport } from './routes/activity-detail'
 import { Route as ActivityCheckRouteImport } from './routes/activity-check'
@@ -23,6 +29,26 @@ import { Route as IndexRouteImport } from './routes/index'
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClockOutSuccessRoute = ClockOutSuccessRouteImport.update({
+  id: '/clock-out-success',
+  path: '/clock-out-success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClockOutRoute = ClockOutRouteImport.update({
+  id: '/clock-out',
+  path: '/clock-out',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClockInSuccessRoute = ClockInSuccessRouteImport.update({
+  id: '/clock-in-success',
+  path: '/clock-in-success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClockInRoute = ClockInRouteImport.update({
+  id: '/clock-in',
+  path: '/clock-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
@@ -43,6 +69,16 @@ const CheckinSuccessRoute = CheckinSuccessRouteImport.update({
 const CheckinRoute = CheckinRouteImport.update({
   id: '/checkin',
   path: '/checkin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceDetailRoute = AttendanceDetailRouteImport.update({
+  id: '/attendance-detail',
+  path: '/attendance-detail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceRoute = AttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityHistoryRoute = ActivityHistoryRouteImport.update({
@@ -77,10 +113,16 @@ export interface FileRoutesByFullPath {
   '/activity-check': typeof ActivityCheckRoute
   '/activity-detail': typeof ActivityDetailRoute
   '/activity-history': typeof ActivityHistoryRoute
+  '/attendance': typeof AttendanceRoute
+  '/attendance-detail': typeof AttendanceDetailRoute
   '/checkin': typeof CheckinRoute
   '/checkin-success': typeof CheckinSuccessRoute
   '/checkout': typeof CheckoutRoute
   '/checkout-success': typeof CheckoutSuccessRoute
+  '/clock-in': typeof ClockInRoute
+  '/clock-in-success': typeof ClockInSuccessRoute
+  '/clock-out': typeof ClockOutRoute
+  '/clock-out-success': typeof ClockOutSuccessRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
@@ -89,10 +131,16 @@ export interface FileRoutesByTo {
   '/activity-check': typeof ActivityCheckRoute
   '/activity-detail': typeof ActivityDetailRoute
   '/activity-history': typeof ActivityHistoryRoute
+  '/attendance': typeof AttendanceRoute
+  '/attendance-detail': typeof AttendanceDetailRoute
   '/checkin': typeof CheckinRoute
   '/checkin-success': typeof CheckinSuccessRoute
   '/checkout': typeof CheckoutRoute
   '/checkout-success': typeof CheckoutSuccessRoute
+  '/clock-in': typeof ClockInRoute
+  '/clock-in-success': typeof ClockInSuccessRoute
+  '/clock-out': typeof ClockOutRoute
+  '/clock-out-success': typeof ClockOutSuccessRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesById {
@@ -102,10 +150,16 @@ export interface FileRoutesById {
   '/activity-check': typeof ActivityCheckRoute
   '/activity-detail': typeof ActivityDetailRoute
   '/activity-history': typeof ActivityHistoryRoute
+  '/attendance': typeof AttendanceRoute
+  '/attendance-detail': typeof AttendanceDetailRoute
   '/checkin': typeof CheckinRoute
   '/checkin-success': typeof CheckinSuccessRoute
   '/checkout': typeof CheckoutRoute
   '/checkout-success': typeof CheckoutSuccessRoute
+  '/clock-in': typeof ClockInRoute
+  '/clock-in-success': typeof ClockInSuccessRoute
+  '/clock-out': typeof ClockOutRoute
+  '/clock-out-success': typeof ClockOutSuccessRoute
   '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
@@ -116,10 +170,16 @@ export interface FileRouteTypes {
     | '/activity-check'
     | '/activity-detail'
     | '/activity-history'
+    | '/attendance'
+    | '/attendance-detail'
     | '/checkin'
     | '/checkin-success'
     | '/checkout'
     | '/checkout-success'
+    | '/clock-in'
+    | '/clock-in-success'
+    | '/clock-out'
+    | '/clock-out-success'
     | '/login'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,10 +188,16 @@ export interface FileRouteTypes {
     | '/activity-check'
     | '/activity-detail'
     | '/activity-history'
+    | '/attendance'
+    | '/attendance-detail'
     | '/checkin'
     | '/checkin-success'
     | '/checkout'
     | '/checkout-success'
+    | '/clock-in'
+    | '/clock-in-success'
+    | '/clock-out'
+    | '/clock-out-success'
     | '/login'
   id:
     | '__root__'
@@ -140,10 +206,16 @@ export interface FileRouteTypes {
     | '/activity-check'
     | '/activity-detail'
     | '/activity-history'
+    | '/attendance'
+    | '/attendance-detail'
     | '/checkin'
     | '/checkin-success'
     | '/checkout'
     | '/checkout-success'
+    | '/clock-in'
+    | '/clock-in-success'
+    | '/clock-out'
+    | '/clock-out-success'
     | '/login'
   fileRoutesById: FileRoutesById
 }
@@ -153,10 +225,16 @@ export interface RootRouteChildren {
   ActivityCheckRoute: typeof ActivityCheckRoute
   ActivityDetailRoute: typeof ActivityDetailRoute
   ActivityHistoryRoute: typeof ActivityHistoryRoute
+  AttendanceRoute: typeof AttendanceRoute
+  AttendanceDetailRoute: typeof AttendanceDetailRoute
   CheckinRoute: typeof CheckinRoute
   CheckinSuccessRoute: typeof CheckinSuccessRoute
   CheckoutRoute: typeof CheckoutRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
+  ClockInRoute: typeof ClockInRoute
+  ClockInSuccessRoute: typeof ClockInSuccessRoute
+  ClockOutRoute: typeof ClockOutRoute
+  ClockOutSuccessRoute: typeof ClockOutSuccessRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -167,6 +245,34 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clock-out-success': {
+      id: '/clock-out-success'
+      path: '/clock-out-success'
+      fullPath: '/clock-out-success'
+      preLoaderRoute: typeof ClockOutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clock-out': {
+      id: '/clock-out'
+      path: '/clock-out'
+      fullPath: '/clock-out'
+      preLoaderRoute: typeof ClockOutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clock-in-success': {
+      id: '/clock-in-success'
+      path: '/clock-in-success'
+      fullPath: '/clock-in-success'
+      preLoaderRoute: typeof ClockInSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clock-in': {
+      id: '/clock-in'
+      path: '/clock-in'
+      fullPath: '/clock-in'
+      preLoaderRoute: typeof ClockInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout-success': {
@@ -195,6 +301,20 @@ declare module '@tanstack/react-router' {
       path: '/checkin'
       fullPath: '/checkin'
       preLoaderRoute: typeof CheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance-detail': {
+      id: '/attendance-detail'
+      path: '/attendance-detail'
+      fullPath: '/attendance-detail'
+      preLoaderRoute: typeof AttendanceDetailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance': {
+      id: '/attendance'
+      path: '/attendance'
+      fullPath: '/attendance'
+      preLoaderRoute: typeof AttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity-history': {
@@ -241,10 +361,16 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityCheckRoute: ActivityCheckRoute,
   ActivityDetailRoute: ActivityDetailRoute,
   ActivityHistoryRoute: ActivityHistoryRoute,
+  AttendanceRoute: AttendanceRoute,
+  AttendanceDetailRoute: AttendanceDetailRoute,
   CheckinRoute: CheckinRoute,
   CheckinSuccessRoute: CheckinSuccessRoute,
   CheckoutRoute: CheckoutRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
+  ClockInRoute: ClockInRoute,
+  ClockInSuccessRoute: ClockInSuccessRoute,
+  ClockOutRoute: ClockOutRoute,
+  ClockOutSuccessRoute: ClockOutSuccessRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
