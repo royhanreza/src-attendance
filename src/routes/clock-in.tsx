@@ -16,6 +16,8 @@ import {
   X,
   AlertTriangle,
   RotateCcw,
+  LogIn,
+  Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { API_ENDPOINTS, EXTERNAL_APIS } from "@/lib/api";
@@ -32,7 +34,6 @@ import {
   type PermissionCategory,
   type PermissionNote,
 } from "@/lib/attendance";
-import { SlideButton } from "@/components/SlideButton";
 import {
   Dialog,
   DialogContent,
@@ -122,6 +123,9 @@ function ClockInPage() {
     isOpen: false,
     message: "",
   });
+
+  // Confirm modal state
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const employeeId = user?.employee_id || user?.employee?.id;
 
@@ -300,8 +304,8 @@ function ClockInPage() {
     }
   };
 
-  // Validation & Submission
-  const handleSaveClockIn = async () => {
+  // Validation & Open Confirmation Modal
+  const handleClockInClick = () => {
     // 1. Division shift validation
     const workingPatternIdToUse = isSpecialDivision
       ? selectedWorkingPatternId
@@ -371,6 +375,19 @@ function ClockInPage() {
         title: "Lokasi belum terdeteksi",
         message: "Harap tunggu lokasi terdeteksi sebelum melakukan Clock In.",
       });
+      return;
+    }
+
+    setIsConfirmModalOpen(true);
+  };
+
+  // Submit Clock In
+  const handleSaveClockIn = async () => {
+    const workingPatternIdToUse = isSpecialDivision
+      ? selectedWorkingPatternId
+      : employeeDetail?.active_working_pattern_id || selectedWorkingPatternId;
+
+    if (!userLocation || !photo) {
       return;
     }
 
@@ -448,9 +465,11 @@ function ClockInPage() {
         })
       );
 
+      setIsConfirmModalOpen(false);
       navigate({ to: "/clock-in-success" });
     } catch (err: unknown) {
       console.error("Clock In failed:", err);
+      setIsConfirmModalOpen(false);
       const msg = err instanceof Error ? err.message : "Kehadiran kamu gagal disimpan. Silakan coba lagi.";
       setErrorModal({
         isOpen: true,
@@ -704,17 +723,112 @@ function ClockInPage() {
           )}
         </div>
 
-        {/* Swipe to Clock In Slider */}
+        {/* Tombol Konfirmasi Clock In */}
         <div className="pt-6">
-          <SlideButton
-            label="Geser untuk clock in"
-            themeColor="fuchsia"
-            isLoading={isSubmitting}
-            disabled={isLocationLoading || !userLocation}
-            onSuccess={handleSaveClockIn}
-          />
+          <button
+            type="button"
+            onClick={handleClockInClick}
+            disabled={isLocationLoading || !userLocation || isSubmitting}
+            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-600 via-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-fuchsia-600/25 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <LogIn className="w-5 h-5" />
+            <span>Clock In Sekarang</span>
+          </button>
         </div>
       </div>
+
+      {/* Modal: Konfirmasi Clock In */}
+      <Dialog
+        open={isConfirmModalOpen}
+        onOpenChange={(open) => {
+          if (!isSubmitting) setIsConfirmModalOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center flex-shrink-0">
+              <LogIn className="w-5 h-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold text-slate-900">
+                Konfirmasi Clock In
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 mt-1 leading-relaxed">
+                Apakah Anda yakin ingin melakukan Clock In sekarang? Pastikan data kehadiran Anda sudah sesuai.
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Waktu:</span>
+              <span className="font-semibold text-slate-900">
+                {new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Lokasi:</span>
+              <span className={`font-semibold ${isInsideCircle ? "text-emerald-600" : "text-amber-600"}`}>
+                {isInsideCircle ? "Dalam Radius Kantor" : "Luar Radius Kantor"}
+              </span>
+            </div>
+            {timeLate > 0 && (
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Keterlambatan:</span>
+                <span className="font-semibold text-rose-600">+{timeLate} menit</span>
+              </div>
+            )}
+            {selectedWorkingPatternName && (
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Shift:</span>
+                <span className="font-semibold text-slate-900 truncate max-w-[150px]">
+                  {selectedWorkingPatternName}
+                </span>
+              </div>
+            )}
+            {selectedPermissionCategoryName && selectedPermissionCategoryId !== "" && (
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Kategori Izin:</span>
+                <span className="font-semibold text-amber-700">
+                  {selectedPermissionCategoryName}
+                </span>
+              </div>
+            )}
+            {note && (
+              <div className="pt-1.5 border-t border-slate-200/60 text-slate-600">
+                <span className="block text-[11px] text-slate-400">Catatan:</span>
+                <p className="text-slate-800 italic mt-0.5 break-words line-clamp-2">"{note}"</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="mt-4 flex gap-2 sm:gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSaveClockIn}
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white text-xs font-bold transition-all shadow-md shadow-fuchsia-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <span>Ya, Clock In</span>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal: Dynamic Working Patterns (Shift Selection) */}
       <Dialog open={isWorkingPatternModalOpen} onOpenChange={setIsWorkingPatternModalOpen}>

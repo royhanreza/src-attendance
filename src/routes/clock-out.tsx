@@ -15,6 +15,8 @@ import {
   RotateCcw,
   AlertCircle,
   Check,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { API_ENDPOINTS, EXTERNAL_APIS } from "@/lib/api";
@@ -24,7 +26,6 @@ import {
   isInsideOfficeRadius,
   type EmployeeDetail,
 } from "@/lib/attendance";
-import { SlideButton } from "@/components/SlideButton";
 import {
   Dialog,
   DialogContent,
@@ -100,6 +101,9 @@ function ClockOutPage() {
     isOpen: false,
     message: "",
   });
+
+  // Confirm modal state
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const employeeId = user?.employee_id || user?.employee?.id;
 
@@ -228,8 +232,8 @@ function ClockOutPage() {
     }
   };
 
-  // Validation & Submit
-  const handleSaveClockOut = async () => {
+  // Pre-submit validation: if valid, open confirmation modal
+  const handleClockOutClick = () => {
     // 1. Photo validation
     if (!photo) {
       setValidationModal({
@@ -256,6 +260,15 @@ function ClockOutPage() {
         title: "Lokasi belum terdeteksi",
         message: "Harap tunggu lokasi terdeteksi sebelum melakukan Clock Out.",
       });
+      return;
+    }
+
+    setIsConfirmModalOpen(true);
+  };
+
+  // Submit Clock Out
+  const handleSaveClockOut = async () => {
+    if (!userLocation || !photo) {
       return;
     }
 
@@ -328,9 +341,11 @@ function ClockOutPage() {
         })
       );
 
+      setIsConfirmModalOpen(false);
       navigate({ to: "/clock-out-success" });
     } catch (err: unknown) {
       console.error("Clock Out failed:", err);
+      setIsConfirmModalOpen(false);
       const msg = err instanceof Error ? err.message : "Kehadiran pulang kamu gagal disimpan. Silakan coba lagi.";
       setErrorModal({
         isOpen: true,
@@ -527,17 +542,96 @@ function ClockOutPage() {
           </div>
         </div>
 
-        {/* Swipe to Clock Out Slider */}
+        {/* Tombol Konfirmasi Clock Out */}
         <div className="pt-6">
-          <SlideButton
-            label="Geser untuk clock out"
-            themeColor="blue"
-            isLoading={isSubmitting}
-            disabled={isLocationLoading || !userLocation}
-            onSuccess={handleSaveClockOut}
-          />
+          <button
+            type="button"
+            onClick={handleClockOutClick}
+            disabled={isLocationLoading || !userLocation || isSubmitting}
+            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Clock Out Sekarang</span>
+          </button>
         </div>
       </div>
+
+      {/* Modal: Konfirmasi Clock Out */}
+      <Dialog
+        open={isConfirmModalOpen}
+        onOpenChange={(open) => {
+          if (!isSubmitting) setIsConfirmModalOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+              <LogOut className="w-5 h-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold text-slate-900">
+                Konfirmasi Clock Out
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 mt-1 leading-relaxed">
+                Apakah Anda yakin ingin melakukan Clock Out dan menyelesaikan jam kerja hari ini?
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Waktu:</span>
+              <span className="font-semibold text-slate-900">
+                {new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Lokasi:</span>
+              <span className={`font-semibold ${isInsideCircle ? "text-emerald-600" : "text-amber-600"}`}>
+                {isInsideCircle ? "Dalam Radius Kantor" : "Luar Radius Kantor"}
+              </span>
+            </div>
+            {isLongShift && (
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Shift Tambahan:</span>
+                <span className="font-semibold text-blue-600">Long Shift Aktif</span>
+              </div>
+            )}
+            {note && (
+              <div className="pt-1.5 border-t border-slate-200/60 text-slate-600">
+                <span className="block text-[11px] text-slate-400">Catatan:</span>
+                <p className="text-slate-800 italic mt-0.5 break-words line-clamp-2">"{note}"</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="mt-4 flex gap-2 sm:gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSaveClockOut}
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <span>Ya, Clock Out</span>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal: Validation Notice */}
       <Dialog
