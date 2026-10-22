@@ -60,7 +60,7 @@ function LoginPage() {
         <div className="p-8 bg-white">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-fuchsia-600 tracking-tight mb-2">
-              Magenta Activity
+              SRC Presensi (Test Mode)
             </h1>
             <p className="text-gray-500 text-sm">
               Silakan masuk untuk melanjutkan

@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { useAuthStore } from "../stores/authStore";
 import { useEffect, useState } from "react";
+import { TestBadge } from "../components/TestBadge";
 
 // Conditionally load devtools only in development
 function DevTools() {
@@ -163,6 +164,7 @@ function RootComponent() {
           <Outlet />
         </main>
       </div>
+      <TestBadge />
       <DevTools />
     </>
   );
