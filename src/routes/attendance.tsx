@@ -19,6 +19,7 @@ import {
   RotateCcw,
   LogIn,
   LogOut,
+  AlertCircle,
 } from "lucide-react";
 import {
   format,
@@ -30,6 +31,7 @@ import {
   isToday,
 } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { getErrorMessage } from "../lib/httpClient";
 import {
   fetchMonthlyAttendances,
   type MonthlyAttendance,
@@ -80,6 +82,7 @@ function AttendanceCalendarPage() {
     total_time_late: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const formattedMonthParam = format(currentDate, "yyyy-MM");
 
@@ -87,12 +90,18 @@ function AttendanceCalendarPage() {
   const loadData = useCallback(async () => {
     if (!employeeId) return;
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchMonthlyAttendances(employeeId, formattedMonthParam);
       setAttendances(result.attendances);
       setStats(result.statistics);
     } catch (err) {
       console.error("Failed to load monthly attendances:", err);
+      const msg = getErrorMessage(
+        err,
+        "Gagal memuat data absensi bulanan. Silakan periksa koneksi dan coba lagi."
+      );
+      setError(msg);
       setAttendances([]);
     } finally {
       setLoading(false);
@@ -211,7 +220,7 @@ function AttendanceCalendarPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-fuchsia-50/30">
       <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl flex flex-col">
         {/* Header Section */}
-        <div className="bg-gradient-to-br from-fuchsia-600 via-fuchsia-700 to-pink-600 text-white px-5 pt-8 pb-6 relative overflow-hidden shadow-lg">
+        <div className="bg-fuchsia-600 bg-gradient-to-br from-fuchsia-600 via-fuchsia-700 to-pink-600 text-white px-5 pt-8 pb-6 relative overflow-hidden shadow-lg">
           {/* Decorative background shapes */}
           <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-2xl transform translate-x-12 -translate-y-12" />
           <div className="absolute bottom-0 left-0 w-36 h-36 bg-emerald-400/15 rounded-full blur-xl transform -translate-x-10 translate-y-10" />
@@ -282,6 +291,24 @@ function AttendanceCalendarPage() {
             )}
           </div>
         </div>
+
+        {/* Error Alert if request failed */}
+        {error && (
+          <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 shadow-xs">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="text-xs font-bold text-red-900 mb-1">Gagal Memuat Data</h4>
+              <p className="text-xs text-red-700 leading-relaxed mb-2.5">{error}</p>
+              <button
+                onClick={loadData}
+                disabled={loading}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-xs transition-all"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Statistic Cards */}
         <div className="px-4 py-4 bg-slate-50/80 border-b border-gray-100">
@@ -412,7 +439,7 @@ function AttendanceCalendarPage() {
                     todayStr
                   )
                 }
-                className="w-full mt-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
+                className="w-full mt-3 bg-emerald-600 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
               >
                 <span>Lihat Detail Kehadiran Hari Ini</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -420,7 +447,7 @@ function AttendanceCalendarPage() {
             ) : !todayAttendance?.clock_in_time ? (
               <button
                 onClick={() => navigate({ to: "/clock-in" })}
-                className="w-full mt-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
+                className="w-full mt-3 bg-emerald-600 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Clock In Sekarang</span>
@@ -428,7 +455,7 @@ function AttendanceCalendarPage() {
             ) : !todayAttendance?.clock_out_time ? (
               <button
                 onClick={() => navigate({ to: "/clock-out" })}
-                className="w-full mt-3 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-fuchsia-600/20 active:scale-98 transition-all"
+                className="w-full mt-3 bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-fuchsia-600/20 active:scale-98 transition-all"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Clock Out Pulang</span>
@@ -515,7 +542,7 @@ function AttendanceCalendarPage() {
                   if (isPresent) {
                     // Prominent Vibrant Green Theme
                     cellStyle =
-                      "bg-gradient-to-br from-emerald-500 to-green-600 text-white border-emerald-400 shadow-sm shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700 active:scale-98";
+                      "bg-emerald-600 bg-gradient-to-br from-emerald-500 to-green-600 text-white border-emerald-400 shadow-sm shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700 active:scale-98";
                   } else if (isSick) {
                     cellStyle =
                       "bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100";

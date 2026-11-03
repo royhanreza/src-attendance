@@ -25,17 +25,17 @@ export const SlideButton: React.FC<SlideButtonProps> = ({
 
   const colorStyles = {
     fuchsia: {
-      trackBg: "bg-gradient-to-r from-fuchsia-600 to-pink-600",
+      trackBg: "bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-pink-600",
       thumbBg: "bg-white text-fuchsia-600",
       progressBg: "bg-white/20",
     },
     blue: {
-      trackBg: "bg-gradient-to-r from-blue-600 to-indigo-600",
+      trackBg: "bg-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600",
       thumbBg: "bg-white text-blue-600",
       progressBg: "bg-white/20",
     },
     emerald: {
-      trackBg: "bg-gradient-to-r from-emerald-600 to-teal-600",
+      trackBg: "bg-emerald-600 bg-gradient-to-r from-emerald-600 to-teal-600",
       thumbBg: "bg-white text-emerald-600",
       progressBg: "bg-white/20",
     },

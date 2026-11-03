@@ -15,8 +15,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getApiBaseUrl } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/api";
 import { compressImage } from "@/lib/utils";
+import {
+  apiClient,
+  getErrorMessage,
+  reverseGeocode,
+  fetchPublicIp,
+} from "@/lib/httpClient";
 import { ArrowLeft } from "lucide-react";
 
 // Fix for default marker icon in React Leaflet
@@ -95,30 +101,14 @@ function CheckinPage() {
     const getLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
+          async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
 
             // Reverse geocoding untuk mendapatkan nama lokasi
-            fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-            )
-              .then((res) => res.json())
-              .then((data) => {
-                const locationName =
-                  data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                setLocation({ lat, lng, name: locationName });
-                setLoading(false);
-              })
-              .catch(() => {
-                // Fallback jika reverse geocoding gagal
-                setLocation({
-                  lat,
-                  lng,
-                  name: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-                });
-                setLoading(false);
-              });
+            const geo = await reverseGeocode(lat, lng);
+            setLocation({ lat, lng, name: geo.address });
+            setLoading(false);
           },
           (err) => {
             let errorMessage = "Gagal mendapatkan lokasi.";
@@ -233,15 +223,8 @@ function CheckinPage() {
       // Get device details
       const deviceDetail = navigator.userAgent;
 
-      // Get IP address (try to fetch from external service, fallback to empty)
-      let ipAddress = "";
-      try {
-        const ipResponse = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipResponse.json();
-        ipAddress = ipData.ip || "";
-      } catch (err) {
-        console.warn("Failed to get IP address:", err);
-      }
+      // Get IP address (fallback to empty if failed)
+      const ipAddress = await fetchPublicIp();
 
       // Create FormData
       const formData = new FormData();
@@ -261,22 +244,8 @@ function CheckinPage() {
         formData.append("attachment", photo);
       }
 
-      // Send POST request
-      const apiBaseUrl = getApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/activities/check-in`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      // Parse response to ensure it's valid JSON
-      await response.json();
+      // Send POST request via apiClient
+      await apiClient.post(API_ENDPOINTS.ACTIVITY.CHECK_IN, formData);
 
       // Close dialog
       setIsDialogOpen(false);
@@ -291,11 +260,11 @@ function CheckinPage() {
       // Close confirmation dialog
       setIsDialogOpen(false);
       // Set error message and open error dialog
-      setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "Terjadi kesalahan saat menyimpan check-in"
+      const message = getErrorMessage(
+        err,
+        "Terjadi kesalahan saat menyimpan data check-in. Silakan coba lagi."
       );
+      setErrorMessage(message);
       setIsErrorDialogOpen(true);
     } finally {
       setIsSubmitting(false);

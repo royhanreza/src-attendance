@@ -95,7 +95,7 @@ function ClockInSuccessPage() {
         <div>
           <button
             onClick={() => navigate({ to: "/" })}
-            className="w-full py-3.5 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white rounded-xl font-bold text-xs shadow-md shadow-fuchsia-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white rounded-xl font-bold text-xs shadow-md shadow-fuchsia-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <span>Kembali ke Beranda</span>
             <ArrowRight className="w-4 h-4" />

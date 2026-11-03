@@ -10,6 +10,7 @@ const API_BASE_URL =
 // External API URLs
 export const EXTERNAL_APIS = {
   NOMINATIM: "https://nominatim.openstreetmap.org",
+  IPIFY: "https://api.ipify.org?format=json",
 } as const;
 
 /**
@@ -47,6 +48,11 @@ export const API_ENDPOINTS = {
       `${API_BASE_URL}/activity?checkoutId=${checkoutId}`,
     CURRENT_STATE: `${API_BASE_URL}/activities/current-state`,
     GET_ACTIVE: `${API_BASE_URL}/activities/get-active-activity`,
+    ACTIVE_ACTIVITY: `${API_BASE_URL}/activities/active-activity`,
+    CHECK_IN: `${API_BASE_URL}/activities/check-in`,
+    CHECK_OUT: `${API_BASE_URL}/activities/check-out`,
+    BY_DATE: `${API_BASE_URL}/activities/by-date`,
+    HISTORY: `${API_BASE_URL}/activities/history`,
   },
 
   // Reverse geocoding (using external API)

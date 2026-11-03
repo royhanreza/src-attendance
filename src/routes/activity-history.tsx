@@ -3,12 +3,14 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { getApiBaseUrl } from "@/lib/api";
+import { useState, useEffect, useCallback } from "react";
+import { API_ENDPOINTS } from "@/lib/api";
+import { apiClient, getErrorMessage } from "@/lib/httpClient";
 import {
   ArrowLeft,
   Calendar as CalendarIcon,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 import { format, getDaysInMonth, startOfMonth, addDays } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -34,6 +36,7 @@ function ActivityHistoryPage() {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<ActivityHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(
@@ -43,32 +46,39 @@ function ActivityHistoryPage() {
     currentDate.getFullYear(),
   );
 
-  useEffect(() => {
+  const fetchHistory = useCallback(async () => {
     if (!employee_id) return;
-
-    const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(
-          `${apiBaseUrl}/activities/history?employee_id=${employee_id}&month=${selectedMonth}&year=${selectedYear}`,
-        );
-        if (response.ok) {
-          const result = await response.json();
-          setActivities(result.data || []);
-        } else {
-          setActivities([]);
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiClient.get<{ data?: ActivityHistory[] }>(
+        API_ENDPOINTS.ACTIVITY.HISTORY,
+        {
+          params: {
+            employee_id,
+            month: selectedMonth,
+            year: selectedYear,
+          },
         }
-      } catch (error) {
-        console.error("Error fetching history:", error);
-        setActivities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
+      );
+      setActivities(response.data?.data || []);
+    } catch (err) {
+      console.error("Error fetching history:", err);
+      setError(
+        getErrorMessage(
+          err,
+          "Gagal memuat riwayat aktivitas. Silakan coba lagi."
+        )
+      );
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
   }, [employee_id, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const handleBack = () => {
     navigate({ to: "/" });
@@ -103,7 +113,7 @@ function ActivityHistoryPage() {
     <div className="min-h-screen bg-gray-50 flex items-start justify-center">
       <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 sticky top-0 z-10 shadow-md">
+        <div className="bg-blue-600 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 sticky top-0 z-10 shadow-md">
           <div className="flex items-center space-x-4">
             <button
               onClick={handleBack}
@@ -182,7 +192,18 @@ function ActivityHistoryPage() {
 
           {/* Activity List */}
           <div className="space-y-3">
-            {loading ? (
+            {error ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center my-4">
+                <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-red-800 mb-3">{error}</p>
+                <button
+                  onClick={fetchHistory}
+                  className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-medium hover:bg-red-700 active:scale-95 transition-all shadow-sm"
+                >
+                  Muat Ulang
+                </button>
+              </div>
+            ) : loading ? (
               <div className="text-center py-10">
                 <div className="inline-block animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 w-8 h-8"></div>
                 <p className="mt-3 text-sm text-gray-500 font-medium opacity-70">

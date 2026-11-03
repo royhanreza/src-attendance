@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { getErrorMessage } from "../lib/httpClient";
 import {
   fetchAttendanceDetail,
   fetchMonthlyAttendances,
@@ -49,10 +50,12 @@ function AttendanceDetailPage() {
 
   const [detail, setDetail] = useState<AttendanceDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       if (attendance_id) {
         const res = await fetchAttendanceDetail(attendance_id);
@@ -95,6 +98,12 @@ function AttendanceDetailPage() {
       }
     } catch (err) {
       console.error("Error loading attendance detail:", err);
+      setError(
+        getErrorMessage(
+          err,
+          "Gagal memuat detail kehadiran. Silakan periksa jaringan Anda dan coba lagi."
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -122,7 +131,7 @@ function AttendanceDetailPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-fuchsia-50/30">
       <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl flex flex-col">
         {/* Top Header */}
-        <div className="bg-gradient-to-br from-fuchsia-600 via-fuchsia-700 to-pink-600 text-white px-5 pt-8 pb-6 relative overflow-hidden shadow-lg">
+        <div className="bg-fuchsia-600 bg-gradient-to-br from-fuchsia-600 via-fuchsia-700 to-pink-600 text-white px-5 pt-8 pb-6 relative overflow-hidden shadow-lg">
           <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-2xl transform translate-x-12 -translate-y-12" />
 
           <div className="relative z-10">
@@ -184,6 +193,35 @@ function AttendanceDetailPage() {
               <p className="text-xs text-gray-500 font-medium">
                 Mengambil data detail kehadiran...
               </p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16 bg-red-50 rounded-2xl border border-red-200 p-6">
+              <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="text-sm font-bold text-red-900">
+                Gagal Mengambil Detail Kehadiran
+              </h3>
+              <p className="text-xs text-red-700 mt-1 mb-4 leading-relaxed">
+                {error}
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={loadData}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95"
+                >
+                  Coba Lagi
+                </button>
+                <button
+                  onClick={() =>
+                    navigate({
+                      to: "/attendance",
+                      search: { employee_id: employee_id || "", month: date?.slice(0, 7) || "" },
+                    })
+                  }
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-50 active:scale-95 transition-all"
+                >
+                  Kembali
+                </button>
+              </div>
             </div>
           ) : !detail ? (
             <div className="text-center py-20 bg-slate-50 rounded-2xl border border-gray-200 p-6">

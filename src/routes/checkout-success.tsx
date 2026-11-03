@@ -42,7 +42,7 @@ function CheckoutSuccessPage() {
         {/* Back Button */}
         <button
           onClick={() => navigate({ to: "/" })}
-          className="w-full max-w-xs mx-auto bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 hover:from-fuchsia-700 hover:to-fuchsia-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-fuchsia-500/30"
+          className="w-full max-w-xs mx-auto bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 hover:from-fuchsia-700 hover:to-fuchsia-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-fuchsia-500/30"
         >
           Kembali ke Beranda
         </button>

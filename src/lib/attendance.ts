@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "./api";
+import { apiClient } from "./httpClient";
 
 export interface Office {
   id?: number;
@@ -133,17 +134,10 @@ export function calculateTimeLate(todayClockInTimeStr?: string | null): number {
 export async function fetchEmployeeDetail(
   employeeId: string | number
 ): Promise<EmployeeDetail | null> {
-  try {
-    const response = await fetch(
-      API_ENDPOINTS.ATTENDANCE.EMPLOYEE_DETAIL(employeeId)
-    );
-    if (!response.ok) return null;
-    const json = await response.json();
-    return json.data || null;
-  } catch (error) {
-    console.error("Error fetching employee detail:", error);
-    return null;
-  }
+  const response = await apiClient.get<{ data?: EmployeeDetail }>(
+    API_ENDPOINTS.ATTENDANCE.EMPLOYEE_DETAIL(employeeId)
+  );
+  return response.data?.data || null;
 }
 
 /**
@@ -153,19 +147,16 @@ export async function fetchWorkingPatterns(
   division: string,
   employeeId: string | number
 ): Promise<WorkingPattern[]> {
-  try {
-    const url = new URL(API_ENDPOINTS.ATTENDANCE.WORKING_PATTERNS);
-    url.searchParams.set("division", division);
-    url.searchParams.set("employee_id", String(employeeId));
-
-    const response = await fetch(url.toString());
-    if (!response.ok) return [];
-    const json = await response.json();
-    return Array.isArray(json.data) ? json.data : [];
-  } catch (error) {
-    console.error("Error fetching working patterns:", error);
-    return [];
-  }
+  const response = await apiClient.get<{ data?: WorkingPattern[] }>(
+    API_ENDPOINTS.ATTENDANCE.WORKING_PATTERNS,
+    {
+      params: {
+        division,
+        employee_id: String(employeeId),
+      },
+    }
+  );
+  return Array.isArray(response.data?.data) ? response.data.data : [];
 }
 
 /**
@@ -174,32 +165,20 @@ export async function fetchWorkingPatterns(
 export async function fetchPermissionCategories(): Promise<
   PermissionCategory[]
 > {
-  try {
-    const response = await fetch(
-      API_ENDPOINTS.ATTENDANCE.PERMISSION_CATEGORIES
-    );
-    if (!response.ok) return [];
-    const json = await response.json();
-    return Array.isArray(json.data) ? json.data : [];
-  } catch (error) {
-    console.error("Error fetching permission categories:", error);
-    return [];
-  }
+  const response = await apiClient.get<{ data?: PermissionCategory[] }>(
+    API_ENDPOINTS.ATTENDANCE.PERMISSION_CATEGORIES
+  );
+  return Array.isArray(response.data?.data) ? response.data.data : [];
 }
 
 /**
  * Fetch common permission notes / reasons
  */
 export async function fetchPermissionNotes(): Promise<PermissionNote[]> {
-  try {
-    const response = await fetch(API_ENDPOINTS.ATTENDANCE.PERMISSION_NOTES);
-    if (!response.ok) return [];
-    const json = await response.json();
-    return Array.isArray(json.data) ? json.data : [];
-  } catch (error) {
-    console.error("Error fetching permission notes:", error);
-    return [];
-  }
+  const response = await apiClient.get<{ data?: PermissionNote[] }>(
+    API_ENDPOINTS.ATTENDANCE.PERMISSION_NOTES
+  );
+  return Array.isArray(response.data?.data) ? response.data.data : [];
 }
 
 export interface CalendarEvent {
@@ -283,74 +262,54 @@ export async function fetchMonthlyAttendances(
   employeeId: string | number,
   month: string // format "YYYY-MM"
 ): Promise<{ attendances: MonthlyAttendance[]; statistics: MonthlyAttendanceStatistic }> {
-  try {
-    const url = new URL(API_ENDPOINTS.ATTENDANCE.MONTHLY_ATTENDANCES(employeeId));
-    url.searchParams.set("month", month);
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      return {
-        attendances: [],
-        statistics: {
-          total_work_day: 0,
-          total_present: 0,
-          total_sick: 0,
-          total_leave: 0,
-          total_time_late: 0,
-        },
-      };
-    }
-    const json = await response.json();
-    const data: MonthlyAttendance[] = Array.isArray(json.data) ? json.data : [];
-
-    let totalWorkDay = 0;
-    let totalTimeLate = 0;
-    let totalSick = 0;
-    let totalLeave = 0;
-    let totalPresent = 0;
-
-    for (const item of data) {
-      const late = Number(item.time_late) || 0;
-      if (late > 0) {
-        totalTimeLate += late;
-      }
-      if (item.day_status === "workday") {
-        totalWorkDay += 1;
-      }
-      if (item.attendance === "hadir") {
-        totalPresent += 1;
-      }
-      if (item.attendance === "sakit") {
-        totalSick += 1;
-      }
-      if (item.attendance === "cuti") {
-        totalLeave += 1;
-      }
-    }
-
-    return {
-      attendances: data,
-      statistics: {
-        total_work_day: totalWorkDay,
-        total_present: totalPresent,
-        total_sick: totalSick,
-        total_leave: totalLeave,
-        total_time_late: totalTimeLate,
+  const response = await apiClient.get<{ data?: MonthlyAttendance[] }>(
+    API_ENDPOINTS.ATTENDANCE.MONTHLY_ATTENDANCES(employeeId),
+    {
+      params: {
+        month,
       },
-    };
-  } catch (error) {
-    console.error("Error fetching monthly attendances:", error);
-    return {
-      attendances: [],
-      statistics: {
-        total_work_day: 0,
-        total_present: 0,
-        total_sick: 0,
-        total_leave: 0,
-        total_time_late: 0,
-      },
-    };
+    }
+  );
+
+  const data: MonthlyAttendance[] = Array.isArray(response.data?.data)
+    ? response.data.data
+    : [];
+
+  let totalWorkDay = 0;
+  let totalTimeLate = 0;
+  let totalSick = 0;
+  let totalLeave = 0;
+  let totalPresent = 0;
+
+  for (const item of data) {
+    const late = Number(item.time_late) || 0;
+    if (late > 0) {
+      totalTimeLate += late;
+    }
+    if (item.day_status === "workday") {
+      totalWorkDay += 1;
+    }
+    if (item.attendance === "hadir") {
+      totalPresent += 1;
+    }
+    if (item.attendance === "sakit") {
+      totalSick += 1;
+    }
+    if (item.attendance === "cuti") {
+      totalLeave += 1;
+    }
   }
+
+  return {
+    attendances: data,
+    statistics: {
+      total_work_day: totalWorkDay,
+      total_present: totalPresent,
+      total_sick: totalSick,
+      total_leave: totalLeave,
+      total_time_late: totalTimeLate,
+    },
+  };
 }
 
 /**
@@ -359,14 +318,9 @@ export async function fetchMonthlyAttendances(
 export async function fetchAttendanceDetail(
   attendanceId: string | number
 ): Promise<AttendanceDetailData | null> {
-  try {
-    const response = await fetch(API_ENDPOINTS.ATTENDANCE.DETAIL(attendanceId));
-    if (!response.ok) return null;
-    const json = await response.json();
-    return json.data || null;
-  } catch (error) {
-    console.error("Error fetching attendance detail:", error);
-    return null;
-  }
+  const response = await apiClient.get<{ data?: AttendanceDetailData }>(
+    API_ENDPOINTS.ATTENDANCE.DETAIL(attendanceId)
+  );
+  return response.data?.data || null;
 }
 

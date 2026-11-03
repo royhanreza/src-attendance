@@ -19,12 +19,19 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
-import { API_ENDPOINTS, EXTERNAL_APIS } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/api";
+import {
+  apiClient,
+  getErrorMessage,
+  reverseGeocode,
+  fetchPublicIp,
+} from "@/lib/httpClient";
 import { compressImage } from "@/lib/utils";
 import {
   fetchEmployeeDetail,
   isInsideOfficeRadius,
   type EmployeeDetail,
+  type AttendanceActionResponse,
 } from "@/lib/attendance";
 import {
   Dialog,
@@ -61,10 +68,15 @@ function ClockOutPage() {
   const user = useAuthStore((state) => state.user);
 
   // Employee details
-  const [employeeDetail, setEmployeeDetail] = useState<EmployeeDetail | null>(null);
+  const [employeeDetail, setEmployeeDetail] = useState<EmployeeDetail | null>(
+    null,
+  );
 
   // Location states
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [currentStreet, setCurrentStreet] = useState<string>("");
   const [currentAddress, setCurrentAddress] = useState<string>("");
   const [isLocationLoading, setIsLocationLoading] = useState(true);
@@ -113,17 +125,28 @@ function ClockOutPage() {
   const officeRadius = Number(employeeDetail?.office?.radius || 30);
   const hasOffice = officeLat !== 0 || officeLng !== 0;
 
-  const isInsideCircle = userLocation && hasOffice
-    ? isInsideOfficeRadius(userLocation.lat, userLocation.lng, officeLat, officeLng, officeRadius)
-    : false;
+  const isInsideCircle =
+    userLocation && hasOffice
+      ? isInsideOfficeRadius(
+          userLocation.lat,
+          userLocation.lng,
+          officeLat,
+          officeLng,
+          officeRadius,
+        )
+      : false;
 
   // 1. Fetch employee details
   useEffect(() => {
     if (!employeeId) return;
 
     const loadData = async () => {
-      const detail = await fetchEmployeeDetail(employeeId);
-      setEmployeeDetail(detail);
+      try {
+        const detail = await fetchEmployeeDetail(employeeId);
+        setEmployeeDetail(detail);
+      } catch (err) {
+        console.error("Gagal memuat detail karyawan:", getErrorMessage(err));
+      }
     };
 
     loadData();
@@ -148,22 +171,9 @@ function ClockOutPage() {
 
         // Reverse geocoding via Nominatim
         try {
-          const res = await fetch(
-            `${EXTERNAL_APIS.NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const road =
-              data.address?.road ||
-              data.address?.pedestrian ||
-              data.address?.suburb ||
-              "Lokasi Kamu";
-            setCurrentStreet(road);
-            setCurrentAddress(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-          } else {
-            setCurrentStreet("Lokasi Terdeteksi");
-            setCurrentAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-          }
+          const geo = await reverseGeocode(lat, lng);
+          setCurrentStreet(geo.road);
+          setCurrentAddress(geo.address);
         } catch {
           setCurrentStreet("Lokasi Terdeteksi");
           setCurrentAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
@@ -174,16 +184,20 @@ function ClockOutPage() {
       (err) => {
         setIsLocationLoading(false);
         if (err.code === err.PERMISSION_DENIED) {
-          setLocationError("Izin lokasi ditolak. Silakan aktifkan izin lokasi di browser Anda.");
+          setLocationError(
+            "Izin lokasi ditolak. Silakan aktifkan izin lokasi di browser Anda.",
+          );
         } else {
-          setLocationError("Gagal mendeteksi lokasi saat ini. Pastikan GPS aktif.");
+          setLocationError(
+            "Gagal mendeteksi lokasi saat ini. Pastikan GPS aktif.",
+          );
         }
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
-      }
+      },
     );
   }, []);
 
@@ -287,14 +301,7 @@ function ClockOutPage() {
       const clockOutAt = `${date} ${clockOutTime}`;
 
       // IP address
-      let ipAddress = "";
-      try {
-        const ipRes = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipRes.json();
-        ipAddress = ipData.ip || "";
-      } catch {
-        ipAddress = "";
-      }
+      const ipAddress = await fetchPublicIp();
 
       const formData = new FormData();
       formData.append("date", date);
@@ -304,14 +311,17 @@ function ClockOutPage() {
       formData.append("clock_out_device_detail", navigator.userAgent);
       formData.append("clock_out_latitude", String(userLocation.lat));
       formData.append("clock_out_longitude", String(userLocation.lng));
-      formData.append("clock_out_is_inside_office_radius", isInsideCircle ? "1" : "0");
+      formData.append(
+        "clock_out_is_inside_office_radius",
+        isInsideCircle ? "1" : "0",
+      );
       formData.append("clock_out_office_latitude", String(officeLat));
       formData.append("clock_out_office_longitude", String(officeLng));
       formData.append("clock_out_note", note.trim());
       formData.append("employee_id", String(employeeId));
       formData.append(
         "working_pattern_id",
-        String(employeeDetail?.active_working_pattern_id || "")
+        String(employeeDetail?.active_working_pattern_id || ""),
       );
 
       if (isLongShift) {
@@ -322,23 +332,19 @@ function ClockOutPage() {
         formData.append("clock_out_attachment", photo);
       }
 
-      const response = await fetch(API_ENDPOINTS.ATTENDANCE.CLOCK_OUT, {
-        method: "POST",
-        body: formData,
-      });
+      const response = await apiClient.post<AttendanceActionResponse>(
+        API_ENDPOINTS.ATTENDANCE.CLOCK_OUT,
+        formData,
+      );
 
-      const resData = await response.json();
-
-      if (!response.ok || resData.error) {
-        throw new Error(resData.message || "Gagal menyimpan absensi pulang.");
-      }
+      const resData = response.data;
 
       // Success: Save in sessionStorage for the success screen display
       sessionStorage.setItem(
         "last_clock_out_result",
         JSON.stringify({
           attendance: resData.data,
-        })
+        }),
       );
 
       setIsConfirmModalOpen(false);
@@ -346,7 +352,10 @@ function ClockOutPage() {
     } catch (err: unknown) {
       console.error("Clock Out failed:", err);
       setIsConfirmModalOpen(false);
-      const msg = err instanceof Error ? err.message : "Kehadiran pulang kamu gagal disimpan. Silakan coba lagi.";
+      const msg = getErrorMessage(
+        err,
+        "Kehadiran pulang kamu gagal disimpan. Silakan periksa kembali jaringan dan coba lagi.",
+      );
       setErrorModal({
         isOpen: true,
         message: msg,
@@ -372,7 +381,10 @@ function ClockOutPage() {
             <MapPanController center={[userLocation.lat, userLocation.lng]} />
 
             {/* Current user marker */}
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={userMarkerIcon} />
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={userMarkerIcon}
+            />
 
             {/* Office radius circle if office coordinates exist */}
             {hasOffice && (
@@ -464,7 +476,8 @@ function ClockOutPage() {
                 {currentStreet || "Mencari alamat..."}
               </h2>
               <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                {currentAddress || "Sedang memuat alamat lengkap lokasi Anda..."}
+                {currentAddress ||
+                  "Sedang memuat alamat lengkap lokasi Anda..."}
               </p>
             </div>
 
@@ -530,7 +543,8 @@ function ClockOutPage() {
           {/* Notes Input Field */}
           <div className="pt-2">
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              Catatan {!isInsideCircle ? "(Wajib jika di luar kantor)" : "(Opsional)"}
+              Catatan{" "}
+              {!isInsideCircle ? "(Wajib jika di luar kantor)" : "(Opsional)"}
             </label>
             <textarea
               rows={2}
@@ -548,7 +562,7 @@ function ClockOutPage() {
             type="button"
             onClick={handleClockOutClick}
             disabled={isLocationLoading || !userLocation || isSubmitting}
-            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <LogOut className="w-5 h-5" />
             <span>Clock Out Sekarang</span>
@@ -573,7 +587,8 @@ function ClockOutPage() {
                 Konfirmasi Clock Out
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-600 mt-1 leading-relaxed">
-                Apakah Anda yakin ingin melakukan Clock Out dan menyelesaikan jam kerja hari ini?
+                Apakah Anda yakin ingin melakukan Clock Out dan menyelesaikan
+                jam kerja hari ini?
               </DialogDescription>
             </div>
           </div>
@@ -582,25 +597,37 @@ function ClockOutPage() {
             <div className="flex items-center justify-between text-slate-600">
               <span>Waktu:</span>
               <span className="font-semibold text-slate-900">
-                {new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+                {new Date().toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                WIB
               </span>
             </div>
             <div className="flex items-center justify-between text-slate-600">
               <span>Lokasi:</span>
-              <span className={`font-semibold ${isInsideCircle ? "text-emerald-600" : "text-amber-600"}`}>
+              <span
+                className={`font-semibold ${isInsideCircle ? "text-emerald-600" : "text-amber-600"}`}
+              >
                 {isInsideCircle ? "Dalam Radius Kantor" : "Luar Radius Kantor"}
               </span>
             </div>
             {isLongShift && (
               <div className="flex items-center justify-between text-slate-600">
                 <span>Shift Tambahan:</span>
-                <span className="font-semibold text-blue-600">Long Shift Aktif</span>
+                <span className="font-semibold text-blue-600">
+                  Long Shift Aktif
+                </span>
               </div>
             )}
             {note && (
               <div className="pt-1.5 border-t border-slate-200/60 text-slate-600">
-                <span className="block text-[11px] text-slate-400">Catatan:</span>
-                <p className="text-slate-800 italic mt-0.5 break-words line-clamp-2">"{note}"</p>
+                <span className="block text-[11px] text-slate-400">
+                  Catatan:
+                </span>
+                <p className="text-slate-800 italic mt-0.5 break-words line-clamp-2">
+                  "{note}"
+                </p>
               </div>
             )}
           </div>
@@ -618,7 +645,7 @@ function ClockOutPage() {
               type="button"
               disabled={isSubmitting}
               onClick={handleSaveClockOut}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl bg-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {isSubmitting ? (
                 <>
@@ -703,7 +730,9 @@ function ClockOutPage() {
               Kirim Ulang
             </button>
             <button
-              onClick={() => setErrorModal((prev) => ({ ...prev, isOpen: false }))}
+              onClick={() =>
+                setErrorModal((prev) => ({ ...prev, isOpen: false }))
+              }
               className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
             >
               Tutup

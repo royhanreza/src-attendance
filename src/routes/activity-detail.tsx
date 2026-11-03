@@ -4,7 +4,8 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { getApiBaseUrl } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/api";
+import { apiClient, getErrorMessage } from "@/lib/httpClient";
 import {
   ArrowLeft,
   Clock,
@@ -62,24 +63,26 @@ function ActivityDetailPage() {
 
     const fetchDetail = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(
-          `${apiBaseUrl}/activities/by-date?employee_id=${employee_id}&date=${date}`,
-        );
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data && result.data.length > 0) {
-            setActivities(result.data);
-          } else {
-            setError("Aktivitas tidak ditemukan untuk tanggal ini.");
+        const response = await apiClient.get<{ data?: ActivityDetail[] }>(
+          API_ENDPOINTS.ACTIVITY.BY_DATE,
+          {
+            params: {
+              employee_id,
+              date,
+            },
           }
+        );
+        const data = response.data?.data;
+        if (data && data.length > 0) {
+          setActivities(data);
         } else {
-          setError("Gagal mengambil data aktivitas.");
+          setError("Aktivitas tidak ditemukan untuk tanggal ini.");
         }
       } catch (err) {
         console.error("Error fetching detail:", err);
-        setError("Terjadi kesalahan jaringan.");
+        setError(getErrorMessage(err, "Gagal mengambil data detail aktivitas."));
       } finally {
         setLoading(false);
       }
@@ -103,7 +106,7 @@ function ActivityDetailPage() {
     <div className="min-h-screen bg-gray-50 flex items-start justify-center">
       <div className="w-full max-w-md bg-[#F8FAFC] min-h-screen relative pb-10">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 sticky top-0 z-10 shadow-md">
+        <div className="bg-blue-600 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 sticky top-0 z-10 shadow-md">
           <div className="flex items-center space-x-4">
             <button
               onClick={handleBack}

@@ -20,7 +20,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
-import { API_ENDPOINTS, EXTERNAL_APIS } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/api";
+import {
+  apiClient,
+  getErrorMessage,
+  reverseGeocode,
+  fetchPublicIp,
+} from "@/lib/httpClient";
 import { compressImage } from "@/lib/utils";
 import {
   fetchEmployeeDetail,
@@ -33,6 +39,7 @@ import {
   type WorkingPattern,
   type PermissionCategory,
   type PermissionNote,
+  type AttendanceActionResponse,
 } from "@/lib/attendance";
 import {
   Dialog,
@@ -158,44 +165,48 @@ function ClockInPage() {
 
     const loadData = async () => {
       setIsLoadingEmployee(true);
-      const detail = await fetchEmployeeDetail(employeeId);
-      setEmployeeDetail(detail);
+      try {
+        const detail = await fetchEmployeeDetail(employeeId);
+        setEmployeeDetail(detail);
 
-      if (detail) {
-        // Late calculation
-        const lateMins = calculateTimeLate(detail.today_clock_in_time);
-        setTimeLate(lateMins);
+        if (detail) {
+          // Late calculation
+          const lateMins = calculateTimeLate(detail.today_clock_in_time);
+          setTimeLate(lateMins);
 
-        // Active working pattern fallback
-        if (detail.active_working_pattern_id) {
-          setSelectedWorkingPatternId(String(detail.active_working_pattern_id));
-          if (detail.working_pattern_name) {
-            setSelectedWorkingPatternName(detail.working_pattern_name);
+          // Active working pattern fallback
+          if (detail.active_working_pattern_id) {
+            setSelectedWorkingPatternId(String(detail.active_working_pattern_id));
+            if (detail.working_pattern_name) {
+              setSelectedWorkingPatternName(detail.working_pattern_name);
+            }
+          }
+
+          // Fetch dynamic working patterns if special division
+          if (detail.is_aerplus_employee) {
+            const wp = await fetchWorkingPatterns("aerplus", employeeId);
+            setWorkingPatterns(wp);
+          } else if (detail.is_src_cleaning_service) {
+            const wp = await fetchWorkingPatterns("cleaning_service_src", employeeId);
+            setWorkingPatterns(wp);
+          } else if (detail.is_src_security) {
+            const wp = await fetchWorkingPatterns("security_src", employeeId);
+            setWorkingPatterns(wp);
           }
         }
 
-        // Fetch dynamic working patterns if special division
-        if (detail.is_aerplus_employee) {
-          const wp = await fetchWorkingPatterns("aerplus", employeeId);
-          setWorkingPatterns(wp);
-        } else if (detail.is_src_cleaning_service) {
-          const wp = await fetchWorkingPatterns("cleaning_service_src", employeeId);
-          setWorkingPatterns(wp);
-        } else if (detail.is_src_security) {
-          const wp = await fetchWorkingPatterns("security_src", employeeId);
-          setWorkingPatterns(wp);
-        }
+        // Fetch permission categories and notes
+        const [categories, pNotes] = await Promise.all([
+          fetchPermissionCategories(),
+          fetchPermissionNotes(),
+        ]);
+        setPermissionCategories(categories);
+        setPermissionNotes(pNotes);
+      } catch (err) {
+        console.error("Gagal memuat konfigurasi absensi:", getErrorMessage(err));
+      } finally {
+        setIsLoadingEmployee(false);
       }
-
-      // Fetch permission categories and notes
-      const [categories, pNotes] = await Promise.all([
-        fetchPermissionCategories(),
-        fetchPermissionNotes(),
-      ]);
-      setPermissionCategories(categories);
-      setPermissionNotes(pNotes);
-
-      setIsLoadingEmployee(false);
     };
 
     loadData();
@@ -220,22 +231,9 @@ function ClockInPage() {
 
         // Reverse geocoding via Nominatim
         try {
-          const res = await fetch(
-            `${EXTERNAL_APIS.NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const road =
-              data.address?.road ||
-              data.address?.pedestrian ||
-              data.address?.suburb ||
-              "Lokasi Kamu";
-            setCurrentStreet(road);
-            setCurrentAddress(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-          } else {
-            setCurrentStreet("Lokasi Terdeteksi");
-            setCurrentAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-          }
+          const geo = await reverseGeocode(lat, lng);
+          setCurrentStreet(geo.road);
+          setCurrentAddress(geo.address);
         } catch {
           setCurrentStreet("Lokasi Terdeteksi");
           setCurrentAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
@@ -407,14 +405,8 @@ function ClockInPage() {
       const clockInAt = `${date} ${clockInTime}`;
 
       // IP address retrieval
-      let ipAddress = "";
-      try {
-        const ipRes = await fetch("https://api.ipify.org?format=json");
-        const ipData = await ipRes.json();
-        ipAddress = ipData.ip || "";
-      } catch {
-        ipAddress = "";
-      }
+      // Get IP address (fallback to empty if failed)
+      const ipAddress = await fetchPublicIp();
 
       // Note formatting matching mobile: "${permissionNote}---${note}"
       let finalNote = note.trim();
@@ -445,16 +437,12 @@ function ClockInPage() {
         formData.append("clock_in_attachment", photo);
       }
 
-      const response = await fetch(API_ENDPOINTS.ATTENDANCE.CLOCK_IN, {
-        method: "POST",
-        body: formData,
-      });
+      const response = await apiClient.post<AttendanceActionResponse>(
+        API_ENDPOINTS.ATTENDANCE.CLOCK_IN,
+        formData
+      );
 
-      const resData = await response.json();
-
-      if (!response.ok || resData.error) {
-        throw new Error(resData.message || "Gagal menyimpan absensi kehadiran.");
-      }
+      const resData = response.data;
 
       // Success: Save in sessionStorage for the success screen display
       sessionStorage.setItem(
@@ -470,7 +458,10 @@ function ClockInPage() {
     } catch (err: unknown) {
       console.error("Clock In failed:", err);
       setIsConfirmModalOpen(false);
-      const msg = err instanceof Error ? err.message : "Kehadiran kamu gagal disimpan. Silakan coba lagi.";
+      const msg = getErrorMessage(
+        err,
+        "Kehadiran kamu gagal disimpan. Silakan periksa kembali jaringan dan coba lagi."
+      );
       setErrorModal({
         isOpen: true,
         message: msg,
@@ -729,7 +720,7 @@ function ClockInPage() {
             type="button"
             onClick={handleClockInClick}
             disabled={isLocationLoading || !userLocation || isSubmitting}
-            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-600 via-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-fuchsia-600/25 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3.5 px-6 rounded-2xl bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 via-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-fuchsia-600/25 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <LogIn className="w-5 h-5" />
             <span>Clock In Sekarang</span>
@@ -815,7 +806,7 @@ function ClockInPage() {
               type="button"
               disabled={isSubmitting}
               onClick={handleSaveClockIn}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white text-xs font-bold transition-all shadow-md shadow-fuchsia-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white text-xs font-bold transition-all shadow-md shadow-fuchsia-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {isSubmitting ? (
                 <>

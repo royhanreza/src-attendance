@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { API_ENDPOINTS } from "../lib/api";
+import { apiClient, getErrorMessage } from "../lib/httpClient";
 import type { LoginCredentials, LoginResponse } from "../lib/auth";
 import { User, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -29,18 +30,15 @@ function LoginPage() {
         password,
       };
 
-      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN_EMPLOYEE, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
+      const response = await apiClient.post<LoginResponse>(
+        API_ENDPOINTS.AUTH.LOGIN_EMPLOYEE,
+        credentials
+      );
 
-      const data: LoginResponse = await response.json();
+      const data = response.data;
 
-      if (data.error || !data.data) {
-        setError(data.message || "Login gagal. Silakan coba lagi.");
+      if (!data.data) {
+        setError(data.message || "Data login tidak ditemukan. Silakan periksa kembali akun Anda.");
         setIsLoading(false);
         return;
       }
@@ -48,7 +46,11 @@ function LoginPage() {
       login(data.data);
       navigate({ to: "/" });
     } catch (err) {
-      setError("Terjadi kesalahan. Silakan coba lagi.");
+      const message = getErrorMessage(
+        err,
+        "Login gagal. Silakan periksa kembali username dan password Anda."
+      );
+      setError(message);
       setIsLoading(false);
       console.error("Login error:", err);
     }
@@ -155,7 +157,7 @@ function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 hover:from-fuchsia-700 hover:to-fuchsia-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-fuchsia-500/30"
+              className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 hover:from-fuchsia-700 hover:to-fuchsia-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-fuchsia-500/30"
             >
               {isLoading ? (
                 <>

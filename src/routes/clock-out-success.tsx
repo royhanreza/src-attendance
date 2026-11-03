@@ -86,7 +86,7 @@ function ClockOutSuccessPage() {
         <div>
           <button
             onClick={() => navigate({ to: "/" })}
-            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <span>Kembali ke Beranda</span>
             <ArrowRight className="w-4 h-4" />

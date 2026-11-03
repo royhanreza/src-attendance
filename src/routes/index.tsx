@@ -14,7 +14,8 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getApiBaseUrl } from "../lib/api";
+import { API_ENDPOINTS } from "../lib/api";
+import { apiClient, getErrorMessage } from "../lib/httpClient";
 import {
   fetchEmployeeDetail,
   calculateTimeLate,
@@ -101,23 +102,23 @@ function HomePage() {
       try {
         const today = new Date();
         const currentDateStr = today.toISOString().split("T")[0];
-        const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(
-          `${apiBaseUrl}/activities/active-activity?employee_id=${employeeId}&date=${currentDateStr}`
+        const response = await apiClient.get<{ data?: ActiveActivity | null }>(
+          API_ENDPOINTS.ACTIVITY.ACTIVE_ACTIVITY,
+          {
+            params: {
+              employee_id: employeeId,
+              date: currentDateStr,
+            },
+          }
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.data) {
-            setActiveActivity(data.data);
-          } else {
-            setActiveActivity(null);
-          }
+        if (response.data && response.data.data) {
+          setActiveActivity(response.data.data);
         } else {
           setActiveActivity(null);
         }
       } catch (error) {
-        console.error("Error fetching active activity:", error);
+        console.warn("Gagal memuat aktivitas aktif:", getErrorMessage(error));
         setActiveActivity(null);
       }
     };
@@ -125,9 +126,14 @@ function HomePage() {
     const loadAttendance = async () => {
       if (!employeeId) return;
       setIsLoadingAttendance(true);
-      const detail = await fetchEmployeeDetail(employeeId);
-      setEmployeeDetail(detail);
-      setIsLoadingAttendance(false);
+      try {
+        const detail = await fetchEmployeeDetail(employeeId);
+        setEmployeeDetail(detail);
+      } catch (error) {
+        console.warn("Gagal memuat data kehadiran:", getErrorMessage(error));
+      } finally {
+        setIsLoadingAttendance(false);
+      }
     };
 
     fetchActiveActivity();
@@ -156,7 +162,7 @@ function HomePage() {
       <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl flex flex-col justify-between">
         <div>
           {/* Header with Avatar and Name */}
-          <div className="bg-gradient-to-br from-fuchsia-600 via-fuchsia-700 to-pink-600 px-6 pt-12 pb-8 relative overflow-hidden">
+          <div className="bg-fuchsia-600 bg-gradient-to-br from-fuchsia-600 via-fuchsia-700 to-pink-600 px-6 pt-12 pb-8 relative overflow-hidden">
             {/* Decorative background elements */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -mr-32 -mt-32"></div>
@@ -184,7 +190,7 @@ function HomePage() {
                       className="w-16 h-16 rounded-full border-3 border-white shadow-xl object-cover"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-full border-3 border-white shadow-xl bg-gradient-to-br from-fuchsia-400 to-fuchsia-500 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full border-3 border-white shadow-xl bg-fuchsia-500 bg-gradient-to-br from-fuchsia-400 to-fuchsia-500 flex items-center justify-center">
                       <User className="w-8 h-8 text-white" />
                     </div>
                   )}
@@ -301,7 +307,7 @@ function HomePage() {
                   <button
                     onClick={() => navigate({ to: "/clock-in" })}
                     disabled={isLoadingAttendance}
-                    className="w-full py-3 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-bold text-xs rounded-xl shadow-md shadow-fuchsia-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
+                    className="w-full py-3 bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-bold text-xs rounded-xl shadow-md shadow-fuchsia-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
                   >
                     <LogIn className="w-4 h-4" />
                     <span>Clock In Sekarang</span>
@@ -310,7 +316,7 @@ function HomePage() {
                   <button
                     onClick={() => navigate({ to: "/clock-out" })}
                     disabled={isLoadingAttendance}
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
+                    className="w-full py-3 bg-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Clock Out Sekarang</span>
@@ -348,7 +354,7 @@ function HomePage() {
                 }}
                 className="group w-full bg-white border border-gray-200 rounded-2xl p-4 flex items-center space-x-4 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
               >
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
+                <div className="w-12 h-12 bg-emerald-600 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
                   <UserCheck className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 text-left">
@@ -371,7 +377,7 @@ function HomePage() {
                 onClick={handleActivityClick}
                 className="group w-full bg-white border border-gray-200 rounded-2xl p-4 flex items-center space-x-4 hover:border-fuchsia-300 hover:shadow-lg hover:shadow-fuchsia-100 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
               >
-                <div className="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
+                <div className="w-12 h-12 bg-fuchsia-600 bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 text-left">
@@ -403,7 +409,7 @@ function HomePage() {
                 }}
                 className="group w-full bg-white border border-gray-200 rounded-2xl p-4 flex items-center space-x-4 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
               >
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
+                <div className="w-12 h-12 bg-blue-600 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
                   <History className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 text-left">
@@ -494,7 +500,7 @@ function HomePage() {
                   {/* Check-out Button */}
                   <button
                     onClick={handleCheckoutClick}
-                    className="w-full mt-2 bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 hover:from-fuchsia-700 hover:to-fuchsia-800 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md shadow-fuchsia-500/30 text-xs active:scale-98"
+                    className="w-full mt-2 bg-fuchsia-600 bg-gradient-to-r from-fuchsia-600 to-fuchsia-700 hover:from-fuchsia-700 hover:to-fuchsia-800 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md shadow-fuchsia-500/30 text-xs active:scale-98"
                   >
                     Check Out Aktifitas
                   </button>

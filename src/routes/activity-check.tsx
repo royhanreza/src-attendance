@@ -4,7 +4,8 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getApiBaseUrl } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/api";
+import { apiClient, getErrorMessage } from "@/lib/httpClient";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 export const Route = createFileRoute("/activity-check")({
@@ -43,22 +44,18 @@ function ActivityCheckPage() {
         // Get current date if not provided
         const currentDate = date || new Date().toISOString().split("T")[0];
 
-        // Fetch current activity state
-        const apiBaseUrl = getApiBaseUrl();
-        const url = new URL(`${apiBaseUrl}/activities/current-state`);
-        url.searchParams.append("employee_id", String(employee_id));
-        url.searchParams.append("date", currentDate);
+        // Fetch current activity state via apiClient
+        const response = await apiClient.get<{ data?: string | unknown }>(
+          API_ENDPOINTS.ACTIVITY.CURRENT_STATE,
+          {
+            params: {
+              employee_id: String(employee_id),
+              date: currentDate,
+            },
+          }
+        );
 
-        const response = await fetch(url.toString());
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.message || `HTTP error! status: ${response.status}`
-          );
-        }
-
-        const result = await response.json();
+        const result = response.data;
         const currentState = result.data?.toString() || result.data;
 
         // Redirect based on current state
@@ -80,9 +77,10 @@ function ActivityCheckPage() {
       } catch (err) {
         console.error("Error fetching current state:", err);
         setError(
-          `Gagal mengambil status aktivitas: ${
-            err instanceof Error ? err.message : "Terjadi kesalahan"
-          }`
+          `Gagal memeriksa status aktivitas: ${getErrorMessage(
+            err,
+            "Terjadi kesalahan saat memeriksa status aktivitas."
+          )}`
         );
       }
     };
